@@ -1,0 +1,8 @@
+C:\projects\CrawlerLibrary\obj\Debug\CrawlerLibrary.csprojResolveAssemblyReference.cache
+C:\projects\CrawlerLibrary\bin\Debug\CrawlerLibrary.dll
+C:\projects\CrawlerLibrary\bin\Debug\CrawlerLibrary.pdb
+C:\projects\CrawlerLibrary\bin\Debug\HtmlAgilityPack.dll
+C:\projects\CrawlerLibrary\bin\Debug\HtmlAgilityPack.pdb
+C:\projects\CrawlerLibrary\bin\Debug\HtmlAgilityPack.xml
+C:\projects\CrawlerLibrary\obj\Debug\CrawlerLibrary.dll
+C:\projects\CrawlerLibrary\obj\Debug\CrawlerLibrary.pdb
