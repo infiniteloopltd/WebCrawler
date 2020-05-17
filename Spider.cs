@@ -40,6 +40,17 @@ namespace CrawlerLibrary
         /// </summary>
         public static Action<int> OnQueueUpdate = null;
 
+        /// <summary>
+        /// Announce the Useragent so that webmasters will know the purpose of the visit.
+        /// </summary>
+        public static string UserAgent = "https://github.com/infiniteloopltd/WebCrawler";
+
+        /// <summary>
+        /// If a proxy is required, set here.
+        /// </summary>
+        public static WebProxy Proxy = null;
+
+
         public static void Start()
         {
             // Use all versions of TLS
@@ -60,8 +71,10 @@ namespace CrawlerLibrary
             {
                 var webPage = Queue.FirstOrDefault(page => page.State == CrawlState.Unvisited);
                 if (webPage == null) return;
-                var http = new WebClient(); // Add proxy, Add useragent
-                var html = "";
+                var http = new WebClient();
+                http.Headers.Add(HttpRequestHeader.UserAgent, UserAgent);
+                if (Proxy != null) http.Proxy = Proxy;
+                string html;
                 try
                 {
                     html = http.DownloadString(webPage.Url.ToString());
