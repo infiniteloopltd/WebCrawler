@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
 using HtmlAgilityPack;
-
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary; 
 
 namespace CrawlerLibrary
 {
@@ -119,15 +121,28 @@ namespace CrawlerLibrary
                         // Check relative vs absolute
                         href = root + href;
                     }
-                    else if (!href.ToUpper().StartsWith(Scope.ToUpper()))
+                    
+                    if (!href.ToUpper().StartsWith(Scope.ToUpper()))
                     {
                         // Linking to an external website (out of scope)
                         continue;
                     }
 
+                    if (href.Contains("?") && webPage.Contains("?"))
+                    {
+                        // Don't queue child pages of pages with query-strings. 
+                        continue;
+                    }
+
                     if (History.ContainsKey(href))
                     {
-                        // Duplicate
+                        // Historical Duplicate
+                        continue;
+                    }
+
+                    if (Queue.ContainsKey(href))
+                    {
+                        // Recent Duplicate
                         continue;
                     }
                     
@@ -136,5 +151,37 @@ namespace CrawlerLibrary
                 }
             }
         }
+
+        public static void SaveState(string name)
+        {
+            Save(Queue, "queue-" + name + ".dat");
+            Save(History, "history-" + name + ".dat");
+        }
+
+        public static void LoadState(string name)
+        {
+            Queue = Load("queue-" + name + ".dat");
+            History = Load("history-" + name + ".dat");
+        }
+
+
+        private static void Save(Dictionary<string, bool> dictionary, string filename)
+        {
+            var fs = new FileStream(filename,FileMode.Create); 
+            var b = new BinaryFormatter();
+            b.Serialize(fs, dictionary);
+            fs.Close();  
+        }
+
+        private static Dictionary<string, bool> Load(string filename)
+        {
+            var fs = new FileStream(filename, FileMode.Open); 
+            var b = new BinaryFormatter();
+            var dictionary = (Dictionary<string, bool>)b.Deserialize(fs);
+            fs.Close();
+            return dictionary;
+        }
+
+
     }
 }
