@@ -19,11 +19,11 @@ Please feel free to fork this library, and improve upon it!
   };
   Spider.OnVisitedPage = (webpage,content) =>
   {
-      Console.WriteLine("Crawler visited : " + webpage.Url);
+      Console.WriteLine("Crawler visited : " + webpage);
   };
   Spider.OnCrawlError = (webpage, ex) =>
   {
-      Console.WriteLine("Crawler hit error at : " + webpage.Url);
+      Console.WriteLine("Crawler hit error at : " + webpage);
   };
   Spider.StartPage = new Uri("https://www.cloudansweringmachine.com/");
   Spider.Scope = "https://www.cloudansweringmachine.com/"; // Don't leave this domain.
