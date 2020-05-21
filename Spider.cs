@@ -13,8 +13,13 @@ namespace CrawlerLibrary
         /// <summary>
         /// A list of pages to be crawled
         /// </summary>
-        private static List<WebPage> Queue = new List<WebPage>();
+        private static Dictionary<string, bool> Queue = new Dictionary<string, bool>();
 
+        /// <summary>
+        /// All pages visited
+        /// </summary>
+        private static Dictionary<string, bool> History = new Dictionary<string, bool>();
+        
         /// <summary>
         /// A Url prefix that the crawled page must start with. 
         /// </summary>
@@ -28,12 +33,12 @@ namespace CrawlerLibrary
         /// <summary>
         /// An Event that is fired when a new page is visited
         /// </summary>
-        public static Action<WebPage, string> OnVisitedPage = null;
+        public static Action<string, string> OnVisitedPage = null;
 
         /// <summary>
         /// Optional event, fired when an error happens during crawl
         /// </summary>
-        public static Action<WebPage, Exception> OnCrawlError = null;
+        public static Action<string, Exception> OnCrawlError = null;
 
         /// <summary>
         /// When new items are added or removed from the queue, when zero, it's complete.
@@ -50,7 +55,6 @@ namespace CrawlerLibrary
         /// </summary>
         public static WebProxy Proxy = null;
 
-
         public static void Start()
         {
             // Use all versions of TLS
@@ -59,44 +63,48 @@ namespace CrawlerLibrary
             if (Scope == "") throw new Exception("Scope not set");
             if (OnQueueUpdate == null) throw new Exception("OnQueueUpdate not attached to a handler");
             if (OnVisitedPage == null) throw new Exception("OnVisitedPage not attached to a handler");
-            Queue.Add(new WebPage { Url = StartPage, State = CrawlState.Unvisited});
+            Queue.Add(StartPage.ToString(),true);
             var ts = new ThreadStart(SpiderThread);
             var t = new Thread(ts);
             t.Start();
         }
-
+       
         private static void SpiderThread()
         {
             for (;;)
             {
-                var webPage = Queue.FirstOrDefault(page => page.State == CrawlState.Unvisited);
-                if (webPage == null) return;
+                if (Queue.Count == 0) return;
+                var webPage = Queue.First().Key;
                 var http = new WebClient();
                 http.Headers.Add(HttpRequestHeader.UserAgent, UserAgent);
                 if (Proxy != null) http.Proxy = Proxy;
                 string html;
                 try
                 {
-                    html = http.DownloadString(webPage.Url.ToString());
+                    html = http.DownloadString(webPage);
                 }
                 catch (Exception ex)
                 {
-                    webPage.State = CrawlState.Error;
-                    OnQueueUpdate(Queue.Count(q => q.State == CrawlState.Unvisited));
+                    Queue.Remove(webPage);
+                    History.Add(webPage, true);
+                    OnQueueUpdate(Queue.Count);
                     if (OnCrawlError != null) OnCrawlError(webPage, ex);
                     continue;
                 }
-                webPage.State = CrawlState.Visited; // handle error?                
-                if (!http.ResponseHeaders[HttpResponseHeader.ContentType].StartsWith("text/html"))
-                {
-                    webPage.State = CrawlState.Error;
-                    OnQueueUpdate(Queue.Count(q => q.State == CrawlState.Unvisited));
+                Queue.Remove(webPage);
+                History.Add(webPage, true);
+                var mimeType = http.ResponseHeaders[HttpResponseHeader.ContentType];
+                if (!mimeType.StartsWith("text/html"))
+                {   
+                    if (OnCrawlError != null) OnCrawlError(webPage, new Exception("Incorrect MIME type " + mimeType) );
+                    OnQueueUpdate(Queue.Count);
                     continue;
                 }
                 OnVisitedPage(webPage,html);
+                OnQueueUpdate(Queue.Count);
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html);
-                var root = webPage.Url.ToString().Substring(0,webPage.Url.ToString().LastIndexOf('/'));
+                var root = webPage.Substring(0,webPage.LastIndexOf('/'));
                 foreach (var link in doc.DocumentNode.SelectNodes("//a[@href]"))
                 {
                     var href = link.Attributes["href"].Value;
@@ -117,23 +125,16 @@ namespace CrawlerLibrary
                         continue;
                     }
 
-                    if (Queue.FirstOrDefault(page => page.Url.ToString() == href) != null)
+                    if (History.ContainsKey(href))
                     {
                         // Duplicate
                         continue;
                     }
                     
                     // Check Scope
-                    Queue.Add(new WebPage
-                    {
-                        Url = new Uri(href),
-                        State = CrawlState.Unvisited
-                    });
+                    Queue.Add(href,false);
                 }
-                OnQueueUpdate(Queue.Count(q => q.State == CrawlState.Unvisited));
             }
         }
-     
-
     }
 }
