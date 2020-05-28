@@ -65,7 +65,8 @@ namespace CrawlerLibrary
             if (Scope == "") throw new Exception("Scope not set");
             if (OnQueueUpdate == null) throw new Exception("OnQueueUpdate not attached to a handler");
             if (OnVisitedPage == null) throw new Exception("OnVisitedPage not attached to a handler");
-            Queue.Add(StartPage.ToString(),true);
+            // It's possible for the start page to be already present, if this is loaded from a saved state.
+            if (!Queue.ContainsKey(StartPage.ToString())) Queue.Add(StartPage.ToString(),true);
             var ts = new ThreadStart(SpiderThread);
             var t = new Thread(ts);
             t.Start();
@@ -94,7 +95,7 @@ namespace CrawlerLibrary
                     continue;
                 }
                 Queue.Remove(webPage);
-                History.Add(webPage, true);
+                if (!History.ContainsKey(webPage)) History.Add(webPage, true);
                 var mimeType = http.ResponseHeaders[HttpResponseHeader.ContentType];
                 if (!mimeType.StartsWith("text/html"))
                 {   
